@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大学模拟器</title>
+<style>
+  @font-face {
+    font-family: 'Pixel';
+    src: url('font.ttf') format('truetype');
+    font-display: swap;
+  }
+  :root{
+    --ink:#f6e7c8;
+    --ink-dim:#c9b489;
+    --panel:rgba(28,22,15,.86);
+    --panel-border:#5b4632;
+    --accent:#e8b04b;
+    --good:#8fd06a;
+    --bad:#ff6b6b;
+    --blue:#6bc3ff;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    font-family:'Pixel','Zpix','Fusion Pixel','Microsoft YaHei',sans-serif;
+    background:#0e0b08;
+    color:var(--ink);
+    overflow:hidden;
+    -webkit-font-smoothing:none;
+    user-select:none;
+  }
+  /* 像素风边框工具类 */
+  .px{
+    border:4px solid var(--panel-border);
+    box-shadow:
+      inset 0 0 0 2px #241a10,
+      0 4px 0 0 rgba(0,0,0,.45);
+    image-rendering:pixelated;
+  }
+  #game{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+  }
+  /* 背景图 */
+  #bg{
+    position:absolute; inset:0;
+    background-size:cover; background-position:center;
+    transition:background-image .25s;
+    image-rendering:pixelated;
+  }
+  #bg::after{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(10,7,4,.25) 0%, rgba(10,7,4,0) 30%, rgba(10,7,4,.55) 75%, rgba(10,7,4,.82) 100%);
+  }
+  /* 顶部 HUD */
+  #hud{
+    position:relative; z-index:5;
+    display:flex; gap:8px; justify-content:center;
+    padding:12px 14px 6px;
+    flex-wrap:wrap;
+  }
+  .stat{
+    background:var(--panel);
+    border:3px solid var(--panel-border);
+    box-shadow:inset 0 0 0 2px #241a10, 0 3px 0 rgba(0,0,0,.4);
+    padding:4px 12px;
+    font-size:15px;
+    line-height:1.2;
+    min-width:92px;
+    text-align:center;
+    transition:transform .12s;
+  }
+  .stat .lbl{ color:var(--ink-dim); font-size:11px; }
+  .stat .val{ font-size:19px; }
+  .stat.flash-up{ animation:flup .6s; }
+  .stat.flash-down{ animation:fldown .6s; }
+  @keyframes flup{ 0%{transform:translateY(0)} 30%{transform:translateY(-5px); color:var(--good)} 100%{transform:translateY(0)} }
+  @keyframes fldown{ 0%{transform:translateY(0)} 30%{transform:translateY(5px); color:var(--bad)} 100%{transform:translateY(0)} }
+  /* 年份标签 */
+  #year-tag{
+    position:relative; z-index:5; align-self:center; margin-top:6px;
+    background:var(--panel); border:3px solid var(--panel-border);
+    box-shadow:inset 0 0 0 2px #241a10, 0 3px 0 rgba(0,0,0,.4);
+    color:var(--accent); padding:2px 18px; font-size:14px; letter-spacing:2px;
+  }
+  /* 文字面板 */
+  #panel-wrap{
+    position:relative; z-index:5; margin-top:auto;
+    display:flex; justify-content:center; padding:0 16px 20px;
+  }
+  #panel{
+    width:100%; max-width:1060px;
+    background:var(--panel);
+    border:4px solid var(--panel-border);
+    box-shadow:inset 0 0 0 2px #241a10, 0 6px 0 rgba(0,0,0,.5);
+    padding:22px 26px 20px;
+    max-height:58vh; overflow-y:auto;
+  }
+  #scene-title{
+    color:var(--accent); font-size:16px; letter-spacing:3px; margin-bottom:10px;
+  }
+  #narr{
+    font-size:17px; line-height:1.75; color:var(--ink);
+    white-space:pre-wrap;
+  }
+  #narr .q{ color:var(--accent); }
+  #choices{ margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+  .choice{
+    display:block; width:100%; text-align:left;
+    background:#31271a; color:var(--ink);
+    border:3px solid var(--panel-border);
+    box-shadow:inset 0 0 0 2px #1d150c, 0 3px 0 rgba(0,0,0,.45);
+    padding:11px 16px; font-family:inherit; font-size:16px; line-height:1.45;
+    cursor:pointer; transition:transform .05s, background .12s;
+    image-rendering:pixelated;
+  }
+  .choice:hover:not(:disabled){ background:#453722; transform:translateY(-1px); }
+  .choice:active:not(:disabled){ transform:translateY(1px); box-shadow:inset 0 0 0 2px #1d150c, 0 1px 0 rgba(0,0,0,.45); }
+  .choice:disabled{ opacity:.42; cursor:not-allowed; }
+  .choice .fx{ display:block; font-size:12px; color:var(--ink-dim); margin-top:3px; }
+  .choice .fx .up{ color:var(--good); }
+  .choice .fx .dn{ color:var(--bad); }
+  .choice .fx .mo{ color:var(--blue); }
+  /* 隐藏退学按钮 */
+  .hidden-quit{
+    position:absolute; z-index:6; bottom:6px; left:6px;
+    background:transparent; border:none; color:rgba(255,255,255,.10);
+    font-family:inherit; font-size:11px; cursor:pointer;
+  }
+  .hidden-quit:hover{ color:rgba(255,150,150,.5); }
+  /* 主菜单 */
+  #menu{
+    position:absolute; inset:0; z-index:20;
+    background:#0e0b08 url('images/menu.jpg') center/cover no-repeat;
+    image-rendering:pixelated;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  #menu::after{ content:''; position:absolute; inset:0; background:radial-gradient(ellipse at center, rgba(10,7,4,.15), rgba(10,7,4,.65)); }
+  #menu .inner{ position:relative; z-index:2; text-align:center; }
+  #menu h1{
+    font-size:56px; letter-spacing:8px; color:var(--ink);
+    text-shadow:4px 4px 0 #000;
+  }
+  #menu .sub{ color:var(--accent); margin:10px 0 34px; font-size:15px; letter-spacing:6px; }
+  .big-btn{
+    font-family:inherit; font-size:22px; letter-spacing:4px;
+    background:#31271a; color:var(--ink);
+    border:4px solid var(--panel-border);
+    box-shadow:inset 0 0 0 2px #1d150c, 0 5px 0 rgba(0,0,0,.5);
+    padding:14px 54px; cursor:pointer; margin:8px;
+    image-rendering:pixelated;
+  }
+  .big-btn:hover{ background:#453722; }
+  .big-btn:active{ transform:translateY(2px); box-shadow:inset 0 0 0 2px #1d150c, 0 2px 0 rgba(0,0,0,.5); }
+  .big-btn.small{ font-size:15px; padding:9px 26px; }
+  /* 结局 / 成就 */
+  #ending{
+    position:absolute; inset:0; z-index:15;
+    background:rgba(10,7,4,.88);
+    display:flex; align-items:center; justify-content:center; padding:30px;
+  }
+  #ending .card{
+    width:100%; max-width:980px; max-height:90vh; overflow-y:auto;
+    background:var(--panel); border:5px solid var(--panel-border);
+    box-shadow:inset 0 0 0 2px #241a10, 0 8px 0 rgba(0,0,0,.6);
+    padding:30px 34px; text-align:center;
+  }
+  #ending .end-bg{
+    width:100%; height:280px; object-fit:cover; border:4px solid var(--panel-border);
+    box-shadow:0 5px 0 rgba(0,0,0,.5); image-rendering:pixelated; margin-bottom:20px;
+  }
+  #ending h2{ font-size:34px; letter-spacing:6px; color:var(--accent); }
+  #ending .grade{ color:var(--ink-dim); font-size:14px; letter-spacing:3px; margin:6px 0 16px; }
+  #ending .retro{ font-size:17px; line-height:1.85; text-align:left; margin:0 auto 8px; max-width:820px; }
+  #ending .retro .extra{ color:var(--ink-dim); }
+  .ach-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px; margin:18px 0 22px; text-align:left; }
+  .ach{
+    border:3px solid var(--panel-border); background:#2a2014;
+    box-shadow:inset 0 0 0 2px #1d150c; padding:9px 12px; font-size:14px;
+  }
+  .ach.off{ opacity:.35; filter:grayscale(1); }
+  .ach .n{ color:var(--accent); }
+  .ach .d{ color:var(--ink-dim); font-size:11px; margin-top:3px; }
+  /* toast */
+  #toast{
+    position:absolute; top:120px; left:50%; transform:translateX(-50%); z-index:30;
+    background:var(--panel); border:3px solid var(--accent);
+    box-shadow:inset 0 0 0 2px #241a10, 0 4px 0 rgba(0,0,0,.5);
+    padding:12px 24px; font-size:16px; display:none; text-align:center; max-width:80%;
+  }
+  @media (max-width:760px){
+    .stat{ min-width:66px; padding:3px 7px; font-size:12px; }
+    .stat .val{ font-size:15px; }
+    #panel{ padding:16px 16px 14px; }
+    #narr{ font-size:15px; }
+    #menu h1{ font-size:36px; }
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="bg"></div>
+  <div id="hud"></div>
+  <div id="year-tag" style="display:none"></div>
+  <div id="panel-wrap" style="display:none">
+    <div id="panel" class="px">
+      <div id="scene-title"></div>
+      <div id="narr"></div>
+      <div id="choices"></div>
+    </div>
+  </div>
+  <button class="hidden-quit" id="hiddenQuit" style="display:none">〔申请退学〕</button>
+  <div id="toast"></div>
+</div>
+
+<div id="menu">
+  <div class="inner">
+    <h1>大学模拟器</h1>
+    <div class="sub">· 华南理工 · 四年没有标准答案 ·</div>
+    <button class="big-btn" id="btnNew">新 游 戏</button>
+    <div style="margin-top:12px">
+      <button class="big-btn small" id="btnContinue" style="display:none">继续游戏</button>
+    </div>
+  </div>
+</div>
+
+<div id="ending" style="display:none"></div>
+
+<script>
+/* ================= 状态 ================= */
+const STAT_KEYS = [
+  {key:'int',  name:'智力', icon:'📖'},
+  {key:'soc',  name:'社交', icon:'🤝'},
+  {key:'hp',   name:'健康', icon:'❤️'},
+  {key:'en',   name:'精力', icon:'⚡'},
+  {key:'mon',  name:'金钱', icon:'💰'},
+];
+
+function freshState(){
+  return {
+    int: rand(1,100), soc: rand(1,100), hp: rand(1,100), en: rand(1,100),
+    mon: rand(100,8000),
+    openingChoice: null,
+    clubStatus: 0,        // 0=无/已退 1=社员 2=部长
+    everJoinedClub: false, // 是否加入过社团
+    hasHobby: false,
+    everHadHobby: false,
+    gaveUpHobby: false,
+    completeWork: false,
+    isParttime: false,
+    parttimeCount: 0,
+    isDropOut: false,
+    failExam: false,
+    clubAbsent: 0,
+    participatedClub: false,
+    quitClub: false,
+    lateCare: false,
+    missedOpp: 0,
+    wonAward: false,
+    // tags
+    tagMinister:false, tagCreator:false, tagSolo:false, tagParttime:false,
+    crisis: null,
+    // 随机（开局掷好，存档一致）
+    rHobby: Math.random() < 0.35,
+    rSlump: Math.random() < 0.40,
+    // 多社团面试结果
+    multiResult: null,
+  };
+}
+let S = freshState();
+let pos = -1;          // 当前场景下标
+let started = false;
+
+function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+
+/* ================= 场景定义 ================= */
+// fx: int/soc/hp/en/mon 增量；flags 赋值；count 计数(+n)
+const SCENES = [
+  {
+    id:'stats_open', img:'images/stats.jpg', year:'开局',
+    title:'开局属性',
+    text:s=>`你的大学档案已生成——一切尚未开始，数值随机而定。\n\n这是属于你的「华南理工大学」四年：没有攻略，没有标准答案，你走的每一步，都会在毕业那天被回看。`,
+    choices:[
+      {label:'开启大学生活', fx:{}, next:true},
+    ],
+    extraChoices: true, // 显示隐藏退学按钮
+  },
+
+  {
+    id:'opening', img:'images/dorm.jpg', year:'大一',
+    title:'新鲜与试探',
+    text:s=>`九月，你拖着行李箱穿过校门，和几个素未谋面的人住进同一间宿舍。\n\n行李箱的滚轮声停下那一刻，你忽然意识到——从今天起，日子要自己安排了。心里有点慌，也有点跃跃欲试。\n\n<div class="q">你打算如何开启大学生活？</div>`,
+    choices:[
+      {label:'报名多个社团招新', fx:{soc:15, en:-20}, set:{openingChoice:'A'}, desc:'广撒网，哪里热闹去哪里'},
+      {label:'只选 1 个感兴趣的社团', fx:{soc:5, en:-10}, set:{openingChoice:'B'}, desc:'专精一处，量力而行'},
+      {label:'不进社团，优先学习和爱好', fx:{int:5, hp:5}, set:{openingChoice:'C', hasHobby:true, everHadHobby:true}, desc:'把时间留给自己'},
+    ],
+  },
+
+  // ---- 大一 · 社团面试（分支）----
+  {
+    id:'interview_multi', img:'images/interview.jpg', year:'大一',
+    title:'社团面试 · 多社团线',
+    cond:s=>s.openingChoice==='A',
+    build:s=>{
+      if(!s.multiResult){
+        const sc = s.soc;
+        s.multiResult = sc>=70 ? 'full' : (sc>=45 ? 'partial' : 'fail');
+      }
+      const m = {full:'全录取', partial:'部分录取', fail:'全落选'}[s.multiResult];
+      const fx = s.multiResult==='full' ? {soc:20,en:-25,hp:-5} : s.multiResult==='partial' ? {soc:8,en:-15} : {};
+      const set = s.multiResult==='fail' ? {} : {clubStatus:1, everJoinedClub:true};
+      return {
+        text:`你一口气投了七八份报名表，从清晨到傍晚，辗转在一个又一个面试教室之间。\n\n自我介绍说了无数遍，嗓子有点哑，手心有点汗。\n\n最终结果出来了：<b>${m}</b>。`,
+        choices:[{label:'继续', fx, set}]
+      };
+    },
+  },
+  {
+    id:'interview_multi_fail', img:'images/interview.jpg', year:'大一',
+    title:'全落选之后',
+    cond:s=>s.openingChoice==='A' && s.multiResult==='fail',
+    text:s=>`所有社团都婉拒了你。走出最后一间教室，走廊空空荡荡，你忽然不知道接下来该把力气用在哪里。\n\n<div class="q">你会怎么调整？</div>`,
+    choices:[
+      {label:'自我开导', fx:{soc:4, hp:3}, desc:'落选而已，大学还长'},
+      {label:'沉浸在低落里', fx:{soc:-2, hp:-2}, desc:'一时缓不过来'},
+    ],
+  },
+  {
+    id:'interview_single', img:'images/interview.jpg', year:'大一',
+    title:'社团面试 · 单社团线',
+    cond:s=>s.openingChoice==='B',
+    text:s=>`你只投了那一个最心动的社团。面试时你把心里的想法老老实实讲了一遍，学长学姐点了点头。\n\n面试通过。你成了社团里最新的一批新人，开始接一些基础又琐碎的活。`,
+    choices:[{label:'继续', fx:{soc:7, en:-12, hp:-2}, set:{clubStatus:1, everJoinedClub:true}}],
+  },
+  {
+    id:'interview_solo', img:'images/freshman.jpg', year:'大一',
+    title:'独处线 · 空闲时间',
+    cond:s=>s.openingChoice==='C',
+    text:s=>`没进任何社团，你的时间表忽然空出一大块。别人在为社团活动奔忙，你在宿舍窗前发了一会儿呆。\n\n<div class="q">这些多出来的时间，你想怎么花？</div>`,
+    choices:[
+      {label:'图书馆自习', fx:{int:10, en:-10}},
+      {label:'练习爱好', fx:{int:4, en:-12}, desc:'你本就为热爱而来'},
+      {label:'校园慢跑', fx:{hp:8, en:-6}},
+    ],
+  },
+
+  // ---- 大一 · 期末考试 ----
+  {
+    id:'exam', img:'images/exam.jpg', year:'大一',
+    title:'期末考试',
+    text:s=>`期末来得比想象中快。图书馆一座难求，走廊里到处是抱着书来回踱步的人。\n\n<div class="q">第一次大考，你打算怎么复习？</div>`,
+    choices:[
+      {label:'稳步复习', fx:{int:14, en:-12, hp:-2}, desc:'细水长流，稳扎稳打'},
+      {label:'考前突击', fx:{int:8, en:-18, hp:-6}, desc:'通宵抱佛脚'},
+      {label:'摆烂躺平', fx:{int:-12, en:8, hp:4}, set:{failExam:true}, after:(s)=>{ applyFx(s,{int:-5,soc:-8,hp:-7}); toast('📉 挂科了：辅导员谈话，被标记关注'); }},
+    ],
+  },
+
+  // ---- 大一 · 社团大型活动 ----
+  {
+    id:'club_event', img:'images/club_event.jpg', year:'大一',
+    title:'社团大型活动',
+    text:s=>`一年一度的社团大型活动开始了，整个校园都在筹备，热闹的气息从早到晚不停。\n\n<div class="q">面对这场大型活动，你打算怎么做？</div>`,
+    choices:(s)=>{
+      const c = [];
+      if(s.clubStatus>0){
+        c.push({label:'台前展示', fx:{soc:18, en:-22, hp:-8}, set:{participatedClub:true}, desc:'站到最亮的地方去'});
+        c.push({label:'幕后打杂', fx:{soc:7, en:-14, hp:-3}, set:{participatedClub:true}, desc:'把活动撑起来'});
+        c.push({label:'不去了', fx:{en:12, hp:5}, count:{clubAbsent:1}});
+      }else{
+        c.push({label:'当观众', fx:{soc:4, en:-5}});
+        c.push({label:'不去', fx:{en:12, hp:5}, count:{clubAbsent:1}});
+      }
+      return c;
+    },
+  },
+
+  // ---- 大一 · 随机事件：小众爱好 ----
+  {
+    id:'random_hobby', img:'images/random_event.jpg', year:'大一',
+    title:'随机事件 · 小众爱好',
+    cond:s=>s.rHobby && !s.hasHobby && s.mon>=250,
+    text:s=>`校园集市上，一个不起眼的摊位让你停住了脚步。那里摆着某个小众爱好的装备，摊主热情地给你演示。\n\n<div class="q">要不要就此入坑？</div>`,
+    choices:[
+      {label:'购置装备入坑', fx:{int:7, soc:3, en:-6, mon:-220}, set:{hasHobby:true, everHadHobby:true}, desc:'喜欢，就试试看'},
+      {label:'只围观', fx:{}, desc:'看看就好'},
+    ],
+  },
+
+  // ---- 大一 · 复盘 ----
+  {
+    id:'freshman_review', img:'images/freshman_review.jpg', year:'大一',
+    title:'大一 · 复盘',
+    text:s=>`大一结束的那个晚上，你翻着这一年的照片，说不出这一年到底算不算好。\n\n有人交到了挚友，有人找到了热爱，有人只是在一点点适应「大学生」这个新身份。\n\n你也是其中之一。`,
+    choices:[{label:'继续', fx:{}}],
+  },
+  { id:'parttime_f1', img:'images/junior_parttime.jpg', year:'大一', title:'生活费告急',
+    cond:s=>s.mon<500,
+    text:s=>`钱包见底，生活费撑不到月底。你不得不挤出时间去找点活干。`,
+    choices:[{label:'去兼职', fx:{mon:300, en:-12, hp:-4, int:-3, soc:-2}, set:{isParttime:true}, count:{parttimeCount:1}}],
+  },
+
+  // ================= 大二 =================
+  {
+    id:'soph_election', img:'images/soph_election.jpg', year:'大二',
+    title:'社团换届',
+    cond:s=>s.clubStatus>0,
+    text:s=>`社团换届，一条岔路摆在眼前。留下来，意味着要承担更多；离开，又有点舍不得。\n\n<div class="q">面对社团换届，你怎么选？</div>`,
+    choices:[
+      {label:'竞选部长', fx:{soc:22, en:-30, hp:-10, int:-4}, set:{clubStatus:2, tagMinister:true}, desc:'扛起整支社团'},
+      {label:'继续当普通社员', fx:{soc:6, en:-10, hp:-2}, set:{clubStatus:1}, desc:'喜欢，但不想太重'},
+      {label:'退社', fx:{en:22, hp:6, soc:-14}, set:{clubStatus:0, quitClub:true}, desc:'把时间还给自己'},
+    ],
+  },
+  {
+    id:'soph_hobby', img:'images/soph_hobby.jpg', year:'大二',
+    title:'爱好进阶',
+    cond:s=>s.hasHobby,
+    text:s=>`你的爱好攒下了不少积累，已经能拿得出手了。\n\n<div class="q">下一步，你打算怎么走？</div>`,
+    choices:[
+      {label:'参加校内比赛', fx:{int:13, soc:9, en:-20, mon:-80}, disabled:s=>s.mon<80, after:(s)=>{ s.tagCreator=true; const win=Math.random()<0.5; if(win){ applyFx(s,{int:10,soc:12,mon:450}); s.wonAward=true; s.completeWork=true; toast('🏆 获奖！智力+10 社交+12 金钱+450'); } else { applyFx(s,{int:-4,soc:-5,hp:-6}); toast('💔 落选 智力-4 社交-5 健康-6'); } }, desc:'以赛代练'},
+      {label:'尝试接单变现', fx:{int:9, soc:7, en:-16, mon:620}, set:{tagCreator:true}, desc:'把热爱变成钱'},
+      {label:'自娱自乐', fx:{int:5, en:-7}, set:{tagCreator:true}, desc:'不为别的，开心就好'},
+    ],
+  },
+  {
+    id:'soph_conflict', img:'images/soph_conflict.jpg', year:'大二',
+    title:'专业课时间冲突',
+    text:s=>`大二专业课难度上来了，社团、作业、兼职突然撞在了同一个时间点。\n\n<div class="q">时间只有一份，你先顾哪边？</div>`,
+    choices:[
+      {label:'优先社团', fx:{soc:14, int:-9, en:-21, hp:-5}},
+      {label:'优先专业课', fx:{int:16, soc:-8, en:-17, hp:-3}},
+      {label:'优先兼职', fx:{mon:410, int:-7, soc:-6, en:-19, hp:-4}, set:{isParttime:true}, count:{parttimeCount:1}},
+    ],
+  },
+  {
+    id:'soph_slump', img:'images/soph_slump.jpg', year:'大二',
+    title:'随机事件 · 爱好瓶颈期',
+    cond:s=>s.hasHobby && s.rSlump,
+    text:s=>`练了这么久，进步越来越小。继续下去要花时间、花钱，可放下又实在不甘心。\n\n<div class="q">处在瓶颈期，你怎么选？</div>`,
+    choices:[
+      {label:'咬牙打磨', fx:{int:10, en:-14, hp:-5, mon:-60}, disabled:s=>s.mon<60},
+      {label:'搁置爱好', fx:{en:16, hp:7, int:-6}, set:{hasHobby:false, gaveUpHobby:true}},
+    ],
+  },
+  {
+    id:'soph_review', img:'images/soph_review.jpg', year:'大二',
+    title:'大二 · 复盘',
+    text:s=>`大二这一年，你的选择开始显出轮廓。有人在社团里越陷越深，有人在热爱上继续打磨，也有人早早退回了自己的节奏。\n\n系统正在为你打上这一年的标签……`,
+    choices:[{label:'继续', fx:{}}],
+    onEnter:s=>{
+      // 创作者：爱好进阶选了任意一项 且 没有搁置爱好
+      s.tagCreator = s.tagCreator && !s.gaveUpHobby;
+      // 独处者：全程没加社团 或 大一活动累计2次+不去
+      s.tagSolo = !s.everJoinedClub || s.clubAbsent>=2;
+      // 高频兼职
+      s.tagParttime = s.parttimeCount>=2;
+      // 危机优先级
+      s.crisis = s.tagMinister ? 'minister' : s.tagCreator ? 'creator' : s.tagParttime ? 'parttime' : s.tagSolo ? 'solo' : null;
+    },
+  },
+  { id:'parttime_f2', img:'images/junior_parttime.jpg', year:'大二', title:'生活费告急',
+    cond:s=>s.mon<500,
+    text:s=>`生活费又见底了。你只能再挤出时间，接点活撑过这个月。`,
+    choices:[{label:'去兼职', fx:{mon:300, en:-12, hp:-4, int:-3, soc:-2}, set:{isParttime:true}, count:{parttimeCount:1}}],
+  },
+
+  // ================= 大三 =================
+  {
+    id:'junior_future', img:'images/junior_future.jpg', year:'大三',
+    title:'未来方向',
+    text:s=>`大三是一道分水岭。身边的人开始各有各的打算，你也必须想一想未来的出路。\n\n<div class="q">当下你的内心，更偏向哪一种想法？</div>`,
+    choices:[
+      {label:'打磨爱好作品', fx:{int:8, en:-10}},
+      {label:'稳住学业铺路', fx:{int:13, en:-14}},
+      {label:'身心疲惫，优先休息', fx:{hp:12, en:18, int:-4, soc:-4}, set:{lateCare:true}, count:{missedOpp:1}},
+      {label:'经济压力，多赚钱', fx:{mon:200, en:-12, hp:-4, int:-3, soc:-2}, set:{isParttime:true}, count:{parttimeCount:1, missedOpp:1}},
+    ],
+  },
+  {
+    id:'crisis_minister', img:'images/junior_minister.jpg', year:'大三', title:'部长危机',
+    cond:s=>s.crisis==='minister',
+    text:s=>`社团出了大问题：预算被砍，骨干接连退出，眼看着活动就要办不下去。所有人的眼睛都看向了你。\n\n<div class="q">面对这场危机，你会怎么做？</div>`,
+    choices:[
+      {label:'尽力补救', fx:{soc:17, int:9, en:-28, hp:-11, mon:-130}, disabled:s=>s.mon<130},
+      {label:'摆烂放弃', fx:{soc:-18, hp:-13, en:-16, int:-7}},
+    ],
+  },
+  {
+    id:'crisis_creator', img:'images/junior_creator.jpg', year:'大三', title:'创作者危机',
+    cond:s=>s.crisis==='creator',
+    text:s=>`比赛接连落选，作品投出去没有回音，付出好像迟迟看不到回报。\n\n<div class="q">你还愿意继续创作吗？</div>`,
+    choices:[
+      {label:'继续创作', fx:{int:11, en:-13, hp:-7}},
+      {label:'停止产出', fx:{int:-9, hp:-12, en:10}, set:{hasHobby:false, gaveUpHobby:true}},
+    ],
+  },
+  {
+    id:'crisis_solo', img:'images/junior_solo.jpg', year:'大三', title:'独处危机',
+    cond:s=>s.crisis==='solo',
+    text:s=>`看着周围人都在卷实习、卷比赛、卷各种活动，焦虑一点点涌上来。\n\n<div class="q">你会怎么面对这份焦虑？</div>`,
+    choices:[
+      {label:'接纳自己的节奏', fx:{hp:9, int:6, en:-8}},
+      {label:'盲目跟风堆活动', fx:{soc:10, int:-8, en:-24, hp:-10, mon:-110}, disabled:s=>s.mon<110},
+    ],
+  },
+  {
+    id:'crisis_parttime', img:'images/junior_parttime.jpg', year:'大三', title:'兼职危机',
+    cond:s=>s.crisis==='parttime',
+    text:s=>`兼职越来越挤占时间，学业眼看着就要告急。\n\n<div class="q">钱和学业，你保哪个？</div>`,
+    choices:[
+      {label:'削减兼职保学习', fx:{int:12, en:14, hp:8, mon:-450, soc:-4}, disabled:s=>s.mon<450},
+      {label:'维持兼职', fx:{mon:530, int:-14, en:-22, hp:-9, soc:-5}, count:{parttimeCount:1}},
+    ],
+  },
+  {
+    id:'junior_three', img:'images/junior_three.jpg', year:'大三',
+    title:'终极三选一',
+    text:s=>`集体活动、个人机遇、高薪兼职，三件事的时间彻底撞在了一起。\n\n<div class="q">只能选一个，你选哪个？</div>`,
+    choices:[
+      {label:'选集体活动', fx:{soc:16, int:-11, en:-24, hp:-6}, count:{missedOpp:1}},
+      {label:'选个人机遇', fx:{int:18, soc:-10, en:-20, hp:-5}},
+      {label:'选兼职', fx:{mon:750, int:-10, soc:-8, en:-27, hp:-8}, set:{isParttime:true}, count:{parttimeCount:1, missedOpp:1}},
+    ],
+  },
+  {
+    id:'junior_health', img:'images/junior_health.jpg', year:'大三', title:'健康警戒线',
+    cond:s=>s.hp<30,
+    text:s=>`长期透支之下，身体先撑不住了。失眠、疲惫、情绪一点就炸——你被自己逼到了警戒线上。\n\n这一次，你必须停下来休息。`,
+    choices:[{label:'强制休息', fx:{hp:17, en:22, int:-7, soc:-6}, set:{lateCare:true}}],
+  },
+
+  // ================= 大四 =================
+  {
+    id:'senior_prelude', img:'images/finale.jpg', year:'大四',
+    title:'告别与答卷',
+    text:s=>`四年时光转瞬即逝，毕业就在眼前。\n\n属于你的大学篇章即将迎来收尾，过往所有的经历，都在此刻慢慢沉淀下来。`,
+    choices:[{label:'继续', fx:{}}],
+  },
+  {
+    id:'senior_club', img:'images/senior_club.jpg', year:'大四', title:'社团交接',
+    cond:s=>s.clubStatus>=1,
+    text:s=>`社团迎来最后一次集体活动，新人即将接过接力棒。属于你的社团岁月走到了终点，过往的欢笑与争执，都在此刻画上句号。\n\n<div class="q">你会以怎样的姿态告别？</div>`,
+    choices:[
+      {label:'体面退场', fx:{soc:10, en:-12, hp:-3}},
+      {label:'带着遗憾离开', fx:{soc:-7, hp:6}},
+    ],
+  },
+  {
+    id:'senior_hobby', img:'images/senior_hobby.jpg', year:'大四', title:'收尾作品',
+    cond:s=>s.hasHobby,
+    text:s=>`临近毕业，你有机会创作一份收尾作品，为这段爱好的旅程做一次总结。\n\n<div class="q">这份属于你的收尾，你打算怎么做？</div>`,
+    choices:[
+      {label:'认真打磨，圆满收尾', fx:{int:11, soc:6, en:-10, mon:300}, set:{completeWork:true}},
+      {label:'草草应付，潦草结束', fx:{int:-5, en:-6}},
+    ],
+  },
+  {
+    id:'senior_solo', img:'images/senior_solo.jpg', year:'大四', title:'漫步校园',
+    cond:s=>s.clubStatus===0 && !s.hasHobby,
+    text:s=>`没有热闹的集体送别。你独自漫步校园，走过那些曾经去过的角落，安静地回望这四年一个人走过的路。`,
+    choices:[{label:'静静回顾过往', fx:{hp:8, en:10, int:7}}],
+  },
+  {
+    id:'senior_parttime', img:'images/senior_parttime.jpg', year:'大四', title:'复盘打工',
+    cond:s=>s.isParttime,
+    text:s=>`大学期间，你把大量时间花在了兼职谋生上。站在毕业的节点回头看那些为生活费奔波的日子，心里五味杂陈。`,
+    choices:[{label:'回想打工的得与失', fx:{mon:150, hp:-4, en:-8}}],
+  },
+  {
+    id:'finale', img:'images/finale.jpg', year:'大四', title:'终章',
+    text:s=>`四年大学生活到此全部结束。\n\n系统正在读取你所有的关键选择、数值与行为标记，解锁本局成就，然后——\n\n跳转至属于你的结局。`,
+    choices:[{label:'查看我的结局', fx:{}}],
+  },
+];
+
+/* ================= 结局 ================= */
+function endHighClub(s){ return s.clubStatus>=1 && s.participatedClub; }
+
+function evaluateEnding(s){
+  if(s.isDropOut) return s.isParttime ? 'E1' : 'E2';
+  const d1 = s.hp<=25 && s.en<=25 && (s.int<40 || s.soc<40);
+  const d2 = endHighClub(s) && s.int<40 && s.hp<40;
+  if(d1||d2) return 'D';
+  const a1 = s.clubStatus>=1 && s.soc>=70 && s.int>=50 && s.hp>=40 && endHighClub(s);
+  const a2 = s.hasHobby && s.completeWork && s.int>=50 && s.hp>=40;
+  if(a1 && a2){
+    // 取占比更高一条：比较社团/兴趣投入
+    const clubScore = s.soc + (s.clubStatus===2?20:0);
+    const hobbyScore = s.int + (s.completeWork?20:0);
+    return clubScore>=hobbyScore ? 'A1' : 'A2';
+  }
+  if(a1) return 'A1';
+  if(a2) return 'A2';
+  const c1 = endHighClub(s) && s.soc>=65 && s.int<45 && s.hp<45;
+  const c2 = s.everHadHobby && s.gaveUpHobby && !s.hasHobby;
+  const c3 = s.missedOpp>=2;
+  if(c1) return 'C1';
+  if(c2) return 'C2';
+  if(c3) return 'C3';
+  const b2 = s.quitClub || s.gaveUpHobby || s.lateCare;
+  return b2 ? 'B2' : 'B1';
+}
+
+const ENDINGS = {
+  E1:{ img:'images/end_e.jpg', grade:'退学结局组', title:'提早谋生',
+    retro:`刚入学便离开校园，过早踏入社会谋生。前路没有标准答案，你选择了一条少有人走的道路。` },
+  E2:{ img:'images/end_e.jpg', grade:'退学结局组', title:'仓促离场',
+    retro:`陌生环境和内心的不安压过了一切。大学还没来得及真正开始就已结束，你去往了属于自己的别处。` },
+  D:{ img:'images/end_d.jpg', grade:'透支迷失型', title:'疲惫退场',
+    retro:`这四年你十分忙碌，不停奔赴各类事务，长期透支身心，慢慢迷失了方向。喧嚣散去后，很难说清自己到底收获了什么。\n\n但成长也包含「及时止损」——一切仍可以重新开始。` },
+  A1:{ img:'images/end_a1.jpg', grade:'圆满成长型', title:'热忱同行',
+    retro:`你深度投入了集体，锻炼了组织与沟通，收获了丰富的经历。${s=>!s.hasHobby?'（无爱好：少了独处沉淀的时光。）':''}\n\n学业尚可，集体带来的成长，在你身上落地生根。`, extra:s=>s.hasHobby?'' : '无爱好：少有独处沉淀的时光。' },
+  A2:{ img:'images/end_a2.jpg', grade:'圆满成长型', title:'热爱落地',
+    retro:`你守住了一份热爱，从最初的好奇入坑，一路打磨出完整的作品，让爱好真正化成了你的能力。${s=>s.clubStatus===0?'（不在社团：很少参与热闹集体，更多自我沉淀。）':''}\n\n这份热爱，是大学送给你最重要的馈赠。`, extra:s=>s.clubStatus===0?'不在社团：很少参与热闹集体，更多自我沉淀。':'' },
+  C1:{ img:'images/end_c1.jpg', grade:'遗憾错过型', title:'热闹一场空',
+    retro:`你沉浸在社团的热闹里，一时风光无限，却透支了自己、搁置了学业。毕业的喧嚣落幕之后，你发现找不到真正属于自己的方向。` },
+  C2:{ img:'images/end_c2.jpg', grade:'遗憾错过型', title:'未完成的热爱',
+    retro:`你曾经满怀热忱地投入那份爱好，却最终被现实的压力放下。不是所有坚持都有结果，这份「未完成」，成了你长久的遗憾。` },
+  C3:{ img:'images/end_c3.jpg', grade:'遗憾错过型', title:'擦肩而过',
+    retro:`不少机遇曾摆在你的面前，却因为一次次犹豫与取舍而错过。回望时，只剩怅然。` },
+  B1:{ img:'images/end_b1.jpg', grade:'平凡自洽型', title:'自在如常',
+    retro:`没有轰轰烈烈的高光，你守住了一个舒服的生活节奏。接纳普通，本身也是一种难得的成长。` },
+  B2:{ img:'images/end_b2.jpg', grade:'平凡自洽型', title:'慢慢赶路',
+    retro:`你经历过迷茫、放弃与摇摆，走过不少弯路，慢慢学会了照顾自己。不必追赶别人，你只需在自己的道路上，慢慢赶路。` },
+};
+
+/* ================= 成就 ================= */
+const ACHIEVEMENTS = [
+  {id:'wolf',  n:'孤狼',               d:'社交 < 20',           t:s=>s.soc<20},
+  {id:'star',  n:'交际之星',           d:'社交 ≥ 80',           t:s=>s.soc>=80},
+  {id:'sleep', n:'知识冬眠中',         d:'智力 < 20',           t:s=>s.int<20},
+  {id:'lib',   n:'图书馆常驻民',       d:'智力 ≥ 80',           t:s=>s.int>=80},
+  {id:'frag',  n:'脆皮',               d:'健康 < 20',           t:s=>s.hp<20},
+  {id:'bird',  n:'不死鸟',             d:'健康 ≥ 80',           t:s=>s.hp>=80},
+  {id:'batt',  n:'电量 1%',            d:'精力 < 20',           t:s=>s.en<20},
+  {id:'motor', n:'永动机疑似患者',     d:'精力 ≥ 80',           t:s=>s.en>=80},
+  {id:'dirt',  n:'吃土预备役',         d:'金钱 < 200',          t:s=>s.mon<200},
+  {id:'rich',  n:'生活费守门员',       d:'金钱 ≥ 8000',         t:s=>s.mon>=8000},
+  {id:'minister', n:'部长',            d:'当选部长',             t:s=>s.tagMinister || s.clubStatus===2},
+  {id:'creator',  n:'创作者',          d:'入坑爱好并产出作品',   t:s=>s.everHadHobby && s.completeWork},
+  {id:'solo',     n:'独处者',          d:'全程无社团或多次缺席', t:s=>s.tagSolo},
+  {id:'pt',       n:'高频兼职',        d:'兼职 ≥ 2 次',          t:s=>s.parttimeCount>=2},
+  {id:'fail',     n:'挂科标记',        d:'大一挂科',             t:s=>s.failExam},
+  {id:'drop',     n:'提前离场',        d:'申请退学',             t:s=>s.isDropOut},
+];
+
+/* ================= 渲染 ================= */
+const $ = id=>document.getElementById(id);
+const bgEl=$('bg'), hudEl=$('hud'), yearEl=$('year-tag'), panelWrap=$('panel-wrap');
+const titleEl=$('scene-title'), narrEl=$('narr'), choicesEl=$('choices'), toastEl=$('toast');
+
+function applyFx(s, fx){
+  if(fx.int) s.int=clamp(s.int+fx.int,0,100);
+  if(fx.soc) s.soc=clamp(s.soc+fx.soc,0,100);
+  if(fx.hp)  s.hp =clamp(s.hp+fx.hp,0,100);
+  if(fx.en)  s.en =clamp(s.en+fx.en,0,100);
+  if(fx.mon) s.mon=Math.max(0, s.mon+fx.mon);
+}
+
+function renderHud(){
+  let html='';
+  for(const k of STAT_KEYS){
+    html += `<div class="stat" id="st-${k.key}"><div class="lbl">${k.icon} ${k.name}</div><div class="val">${S[k.key]}</div></div>`;
+  }
+  hudEl.innerHTML=html;
+}
+
+function fxText(fx){
+  const map=[['int','智力'],['soc','社交'],['hp','健康'],['en','精力']];
+  const parts=[];
+  for(const [k,n] of map){
+    if(fx[k]>0) parts.push(`<span class="up">${n}+${fx[k]}</span>`);
+    else if(fx[k]<0) parts.push(`<span class="dn">${n}${fx[k]}</span>`);
+  }
+  if(fx.mon>0) parts.push(`<span class="mo">金钱+${fx.mon}</span>`);
+  else if(fx.mon<0) parts.push(`<span class="mo">金钱${fx.mon}</span>`);
+  return parts.join('　');
+}
+
+function toast(msg){
+  toastEl.innerHTML=msg; toastEl.style.display='block';
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>toastEl.style.display='none', 2200);
+}
+
+let lastFx={};
+function showScene(i){
+  const sc=SCENES[i];
+  if(!sc) return showEnding();
+  if(sc.onEnter) sc.onEnter(S);
+  const data = sc.build ? sc.build(S) : sc;
+  bgEl.style.backgroundImage=`url('${sc.img}')`;
+  yearEl.style.display='block'; yearEl.textContent=sc.year||'';
+  panelWrap.style.display='flex';
+  titleEl.textContent=sc.title||'';
+  narrEl.innerHTML = (typeof data.text==='function'? data.text(S) : data.text);
+  const choices = typeof data.choices==='function' ? data.choices(S) : data.choices;
+  // 隐藏退学按钮仅在大一开场
+  $('hiddenQuit').style.display = sc.id==='opening' ? 'block' : 'none';
+  choicesEl.innerHTML='';
+  if(choices && choices.length){
+    for(let c of choices){
+      const dis = c.disabled ? c.disabled(S) : false;
+      const btn=document.createElement('button');
+      btn.className='choice';
+      btn.disabled=!!dis;
+      btn.innerHTML = `<span>${c.label}</span>` + (c.desc?`<span class="fx">${c.desc}</span>`:'') + (c.fx?`<span class="fx">${fxText(c.fx)}</span>`:'');
+      btn.onclick=()=>choose(sc, c, i);
+      choicesEl.appendChild(btn);
+    }
+  }
+  pos=i;
+  save();
+  panelEl.scrollTop=0;
+}
+
+const panelEl=$('panel');
+
+function choose(sc, c, i){
+  if(c.fx) applyFx(S, c.fx);
+  if(c.set) Object.assign(S, c.set);
+  if(c.count){ for(const k in c.count) S[k]=(S[k]||0)+c.count[k]; }
+  if(c.after) c.after(S);
+  flashStats(c.fx);
+  renderHud();
+  nextScene(i);
+}
+
+function flashStats(fx){
+  if(!fx) return;
+  const map={int:'int',soc:'soc',hp:'hp',en:'en',mon:'mon'};
+  for(const k in map){ if(fx[k]){ const el=$('st-'+map[k]); if(el){ el.classList.remove('flash-up','flash-down'); void el.offsetWidth; el.classList.add(fx[k]>0?'flash-up':'flash-down'); } } }
+}
+
+function nextScene(from){
+  for(let j=from+1;j<SCENES.length;j++){
+    if(SCENES[j].cond ? SCENES[j].cond(S) : true){ showScene(j); return; }
+  }
+  showEnding();
+}
+
+function showEnding(){
+  const key=evaluateEnding(S);
+  const e=ENDINGS[key];
+  if(!e){ return; }
+  panelWrap.style.display='none';
+  $('hiddenQuit').style.display='none';
+  yearEl.style.display='none';
+  const extra = e.extra ? `<div class="extra">· ${e.extra(S)}</div>` : '';
+  const achHtml = ACHIEVEMENTS.map(a=>{
+    const on=a.t(S);
+    return `<div class="ach ${on?'':'off'}"><div class="n">${on?'✔':'·'} ${a.n}</div><div class="d">${a.d}</div></div>`;
+  }).join('');
+  const unlocked = ACHIEVEMENTS.filter(a=>a.t(S)).length;
+  $('ending').innerHTML=`
+    <div class="card">
+      <img class="end-bg" src="${e.img}">
+      <h2>${e.title}</h2>
+      <div class="grade">${e.grade}</div>
+      <div class="retro">${e.retro}</div>${extra}
+      <div class="ach-grid">${achHtml}</div>
+      <div class="grade">本局成就 ${unlocked}/${ACHIEVEMENTS.length}</div>
+      <button class="big-btn" id="btnRestart">重新开始</button>
+    </div>`;
+  $('ending').style.display='flex';
+  $('btnRestart').onclick=()=>{ location.reload(); };
+  save();
+}
+
+/* ================= 存档 ================= */
+const SAVE_KEY='univ-sim-save-v1';
+function save(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify({S,pos})); }catch(e){}
+}
+function hasSave(){ try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
+function load(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const d=JSON.parse(raw);
+    S=Object.assign(freshState(), d.S);
+    pos=d.pos;
+    return true;
+  }catch(e){ return false; }
+}
+function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+/* ================= 流程 ================= */
+function startNew(){
+  S=freshState();
+  pos=-1;
+  clearSave();
+  started=true;
+  renderHud();
+  showScene(0);
+}
+function startContinue(){
+  if(!load()){ startNew(); return; }
+  started=true;
+  renderHud();
+  showScene(pos);
+}
+
+$('btnNew').onclick=()=>{ $('menu').style.display='none'; startNew(); };
+$('btnContinue').onclick=()=>{ $('menu').style.display='none'; startContinue(); };
+$('hiddenQuit').onclick=()=>{
+  if(confirm('你确定要申请退学吗？这将直接结束游戏。')){
+    S.isDropOut=true;
+    showEnding();
+  }
+};
+
+// 启动
+if(hasSave()){ $('btnContinue').style.display='inline-block'; }
+</script>
+</body>
+</html>
