@@ -132,7 +132,7 @@
   /* 主菜单 */
   #menu{
     position:absolute; inset:0; z-index:20;
-    background:#0e0b08 url('images/menu.jpg') center/cover no-repeat;
+    background:#0e0b08 url('images/menu.png') center/cover no-repeat;
     image-rendering:pixelated;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
   }
@@ -279,7 +279,7 @@ function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
 // fx: int/soc/hp/en/mon 增量；flags 赋值；count 计数(+n)
 const SCENES = [
   {
-    id:'stats_open', img:'images/stats.jpg', year:'开局',
+    id:'stats_open', img:'images/stats.png', year:'开局',
     title:'开局属性',
     text:s=>`你的大学档案已生成——一切尚未开始，数值随机而定。\n\n这是属于你的「华南理工大学」四年：没有攻略，没有标准答案，你走的每一步，都会在毕业那天被回看。`,
     choices:[
@@ -289,7 +289,7 @@ const SCENES = [
   },
 
   {
-    id:'opening', img:'images/dorm.jpg', year:'大一',
+    id:'opening', img:'images/dorm.png', year:'大一',
     title:'新鲜与试探',
     text:s=>`九月，你拖着行李箱穿过校门，和几个素未谋面的人住进同一间宿舍。\n\n行李箱的滚轮声停下那一刻，你忽然意识到——从今天起，日子要自己安排了。心里有点慌，也有点跃跃欲试。\n\n<div class="q">你打算如何开启大学生活？</div>`,
     choices:[
@@ -301,7 +301,7 @@ const SCENES = [
 
   // ---- 大一 · 社团面试（分支）----
   {
-    id:'interview_multi', img:'images/interview.jpg', year:'大一',
+    id:'interview_multi', img:'images/interview.png', year:'大一',
     title:'社团面试 · 多社团线',
     cond:s=>s.openingChoice==='A',
     build:s=>{
@@ -319,7 +319,7 @@ const SCENES = [
     },
   },
   {
-    id:'interview_multi_fail', img:'images/interview.jpg', year:'大一',
+    id:'interview_multi_fail', img:'images/interview.png', year:'大一',
     title:'全落选之后',
     cond:s=>s.openingChoice==='A' && s.multiResult==='fail',
     text:s=>`所有社团都婉拒了你。走出最后一间教室，走廊空空荡荡，你忽然不知道接下来该把力气用在哪里。\n\n<div class="q">你会怎么调整？</div>`,
@@ -329,14 +329,14 @@ const SCENES = [
     ],
   },
   {
-    id:'interview_single', img:'images/interview.jpg', year:'大一',
+    id:'interview_single', img:'images/interview.png', year:'大一',
     title:'社团面试 · 单社团线',
     cond:s=>s.openingChoice==='B',
     text:s=>`你只投了那一个最心动的社团。面试时你把心里的想法老老实实讲了一遍，学长学姐点了点头。\n\n面试通过。你成了社团里最新的一批新人，开始接一些基础又琐碎的活。`,
     choices:[{label:'继续', fx:{soc:7, en:-12, hp:-2}, set:{clubStatus:1, everJoinedClub:true}}],
   },
   {
-    id:'interview_solo', img:'images/freshman.jpg', year:'大一',
+    id:'interview_solo', img:'images/freshman.png', year:'大一',
     title:'独处线 · 空闲时间',
     cond:s=>s.openingChoice==='C',
     text:s=>`没进任何社团，你的时间表忽然空出一大块。别人在为社团活动奔忙，你在宿舍窗前发了一会儿呆。\n\n<div class="q">这些多出来的时间，你想怎么花？</div>`,
@@ -349,7 +349,7 @@ const SCENES = [
 
   // ---- 大一 · 期末考试 ----
   {
-    id:'exam', img:'images/exam.jpg', year:'大一',
+    id:'exam', img:'images/exam.png', year:'大一',
     title:'期末考试',
     text:s=>`期末来得比想象中快。图书馆一座难求，走廊里到处是抱着书来回踱步的人。\n\n<div class="q">第一次大考，你打算怎么复习？</div>`,
     choices:[
@@ -361,7 +361,7 @@ const SCENES = [
 
   // ---- 大一 · 社团大型活动 ----
   {
-    id:'club_event', img:'images/club_event.jpg', year:'大一',
+    id:'club_event', img:'images/club_event.png', year:'大一',
     title:'社团大型活动',
     text:s=>`一年一度的社团大型活动开始了，整个校园都在筹备，热闹的气息从早到晚不停。\n\n<div class="q">面对这场大型活动，你打算怎么做？</div>`,
     choices:(s)=>{
@@ -380,7 +380,7 @@ const SCENES = [
 
   // ---- 大一 · 随机事件：小众爱好 ----
   {
-    id:'random_hobby', img:'images/random_event.jpg', year:'大一',
+    id:'random_hobby', img:'images/random_event.png', year:'大一',
     title:'随机事件 · 小众爱好',
     cond:s=>s.rHobby && !s.hasHobby && s.mon>=250,
     text:s=>`校园集市上，一个不起眼的摊位让你停住了脚步。那里摆着某个小众爱好的装备，摊主热情地给你演示。\n\n<div class="q">要不要就此入坑？</div>`,
@@ -392,12 +392,12 @@ const SCENES = [
 
   // ---- 大一 · 复盘 ----
   {
-    id:'freshman_review', img:'images/freshman_review.jpg', year:'大一',
+    id:'freshman_review', img:'images/freshman_review.png', year:'大一',
     title:'大一 · 复盘',
     text:s=>`大一结束的那个晚上，你翻着这一年的照片，说不出这一年到底算不算好。\n\n有人交到了挚友，有人找到了热爱，有人只是在一点点适应「大学生」这个新身份。\n\n你也是其中之一。`,
     choices:[{label:'继续', fx:{}}],
   },
-  { id:'parttime_f1', img:'images/junior_parttime.jpg', year:'大一', title:'生活费告急',
+  { id:'parttime_f1', img:'images/junior_parttime.png', year:'大一', title:'生活费告急',
     cond:s=>s.mon<500,
     text:s=>`钱包见底，生活费撑不到月底。你不得不挤出时间去找点活干。`,
     choices:[{label:'去兼职', fx:{mon:300, en:-12, hp:-4, int:-3, soc:-2}, set:{isParttime:true}, count:{parttimeCount:1}}],
@@ -405,7 +405,7 @@ const SCENES = [
 
   // ================= 大二 =================
   {
-    id:'soph_election', img:'images/soph_election.jpg', year:'大二',
+    id:'soph_election', img:'images/soph_election.png', year:'大二',
     title:'社团换届',
     cond:s=>s.clubStatus>0,
     text:s=>`社团换届，一条岔路摆在眼前。留下来，意味着要承担更多；离开，又有点舍不得。\n\n<div class="q">面对社团换届，你怎么选？</div>`,
@@ -416,7 +416,7 @@ const SCENES = [
     ],
   },
   {
-    id:'soph_hobby', img:'images/soph_hobby.jpg', year:'大二',
+    id:'soph_hobby', img:'images/soph_hobby.png', year:'大二',
     title:'爱好进阶',
     cond:s=>s.hasHobby,
     text:s=>`你的爱好攒下了不少积累，已经能拿得出手了。\n\n<div class="q">下一步，你打算怎么走？</div>`,
@@ -427,7 +427,7 @@ const SCENES = [
     ],
   },
   {
-    id:'soph_conflict', img:'images/soph_conflict.jpg', year:'大二',
+    id:'soph_conflict', img:'images/soph_conflict.png', year:'大二',
     title:'专业课时间冲突',
     text:s=>`大二专业课难度上来了，社团、作业、兼职突然撞在了同一个时间点。\n\n<div class="q">时间只有一份，你先顾哪边？</div>`,
     choices:[
@@ -437,7 +437,7 @@ const SCENES = [
     ],
   },
   {
-    id:'soph_slump', img:'images/soph_slump.jpg', year:'大二',
+    id:'soph_slump', img:'images/soph_slump.png', year:'大二',
     title:'随机事件 · 爱好瓶颈期',
     cond:s=>s.hasHobby && s.rSlump,
     text:s=>`练了这么久，进步越来越小。继续下去要花时间、花钱，可放下又实在不甘心。\n\n<div class="q">处在瓶颈期，你怎么选？</div>`,
@@ -447,7 +447,7 @@ const SCENES = [
     ],
   },
   {
-    id:'soph_review', img:'images/soph_review.jpg', year:'大二',
+    id:'soph_review', img:'images/soph_review.png', year:'大二',
     title:'大二 · 复盘',
     text:s=>`大二这一年，你的选择开始显出轮廓。有人在社团里越陷越深，有人在热爱上继续打磨，也有人早早退回了自己的节奏。\n\n系统正在为你打上这一年的标签……`,
     choices:[{label:'继续', fx:{}}],
@@ -462,7 +462,7 @@ const SCENES = [
       s.crisis = s.tagMinister ? 'minister' : s.tagCreator ? 'creator' : s.tagParttime ? 'parttime' : s.tagSolo ? 'solo' : null;
     },
   },
-  { id:'parttime_f2', img:'images/junior_parttime.jpg', year:'大二', title:'生活费告急',
+  { id:'parttime_f2', img:'images/junior_parttime.png', year:'大二', title:'生活费告急',
     cond:s=>s.mon<500,
     text:s=>`生活费又见底了。你只能再挤出时间，接点活撑过这个月。`,
     choices:[{label:'去兼职', fx:{mon:300, en:-12, hp:-4, int:-3, soc:-2}, set:{isParttime:true}, count:{parttimeCount:1}}],
@@ -470,7 +470,7 @@ const SCENES = [
 
   // ================= 大三 =================
   {
-    id:'junior_future', img:'images/junior_future.jpg', year:'大三',
+    id:'junior_future', img:'images/junior_future.png', year:'大三',
     title:'未来方向',
     text:s=>`大三是一道分水岭。身边的人开始各有各的打算，你也必须想一想未来的出路。\n\n<div class="q">当下你的内心，更偏向哪一种想法？</div>`,
     choices:[
@@ -481,7 +481,7 @@ const SCENES = [
     ],
   },
   {
-    id:'crisis_minister', img:'images/junior_minister.jpg', year:'大三', title:'部长危机',
+    id:'crisis_minister', img:'images/junior_minister.png', year:'大三', title:'部长危机',
     cond:s=>s.crisis==='minister',
     text:s=>`社团出了大问题：预算被砍，骨干接连退出，眼看着活动就要办不下去。所有人的眼睛都看向了你。\n\n<div class="q">面对这场危机，你会怎么做？</div>`,
     choices:[
@@ -490,7 +490,7 @@ const SCENES = [
     ],
   },
   {
-    id:'crisis_creator', img:'images/junior_creator.jpg', year:'大三', title:'创作者危机',
+    id:'crisis_creator', img:'images/junior_creator.png', year:'大三', title:'创作者危机',
     cond:s=>s.crisis==='creator',
     text:s=>`比赛接连落选，作品投出去没有回音，付出好像迟迟看不到回报。\n\n<div class="q">你还愿意继续创作吗？</div>`,
     choices:[
@@ -499,7 +499,7 @@ const SCENES = [
     ],
   },
   {
-    id:'crisis_solo', img:'images/junior_solo.jpg', year:'大三', title:'独处危机',
+    id:'crisis_solo', img:'images/junior_solo.png', year:'大三', title:'独处危机',
     cond:s=>s.crisis==='solo',
     text:s=>`看着周围人都在卷实习、卷比赛、卷各种活动，焦虑一点点涌上来。\n\n<div class="q">你会怎么面对这份焦虑？</div>`,
     choices:[
@@ -508,7 +508,7 @@ const SCENES = [
     ],
   },
   {
-    id:'crisis_parttime', img:'images/junior_parttime.jpg', year:'大三', title:'兼职危机',
+    id:'crisis_parttime', img:'images/junior_parttime.png', year:'大三', title:'兼职危机',
     cond:s=>s.crisis==='parttime',
     text:s=>`兼职越来越挤占时间，学业眼看着就要告急。\n\n<div class="q">钱和学业，你保哪个？</div>`,
     choices:[
@@ -517,7 +517,7 @@ const SCENES = [
     ],
   },
   {
-    id:'junior_three', img:'images/junior_three.jpg', year:'大三',
+    id:'junior_three', img:'images/junior_three.png', year:'大三',
     title:'终极三选一',
     text:s=>`集体活动、个人机遇、高薪兼职，三件事的时间彻底撞在了一起。\n\n<div class="q">只能选一个，你选哪个？</div>`,
     choices:[
@@ -527,7 +527,7 @@ const SCENES = [
     ],
   },
   {
-    id:'junior_health', img:'images/junior_health.jpg', year:'大三', title:'健康警戒线',
+    id:'junior_health', img:'images/junior_health.png', year:'大三', title:'健康警戒线',
     cond:s=>s.hp<30,
     text:s=>`长期透支之下，身体先撑不住了。失眠、疲惫、情绪一点就炸——你被自己逼到了警戒线上。\n\n这一次，你必须停下来休息。`,
     choices:[{label:'强制休息', fx:{hp:17, en:22, int:-7, soc:-6}, set:{lateCare:true}}],
@@ -535,13 +535,13 @@ const SCENES = [
 
   // ================= 大四 =================
   {
-    id:'senior_prelude', img:'images/finale.jpg', year:'大四',
+    id:'senior_prelude', img:'images/finale.png', year:'大四',
     title:'告别与答卷',
     text:s=>`四年时光转瞬即逝，毕业就在眼前。\n\n属于你的大学篇章即将迎来收尾，过往所有的经历，都在此刻慢慢沉淀下来。`,
     choices:[{label:'继续', fx:{}}],
   },
   {
-    id:'senior_club', img:'images/senior_club.jpg', year:'大四', title:'社团交接',
+    id:'senior_club', img:'images/senior_club.png', year:'大四', title:'社团交接',
     cond:s=>s.clubStatus>=1,
     text:s=>`社团迎来最后一次集体活动，新人即将接过接力棒。属于你的社团岁月走到了终点，过往的欢笑与争执，都在此刻画上句号。\n\n<div class="q">你会以怎样的姿态告别？</div>`,
     choices:[
@@ -550,7 +550,7 @@ const SCENES = [
     ],
   },
   {
-    id:'senior_hobby', img:'images/senior_hobby.jpg', year:'大四', title:'收尾作品',
+    id:'senior_hobby', img:'images/senior_hobby.png', year:'大四', title:'收尾作品',
     cond:s=>s.hasHobby,
     text:s=>`临近毕业，你有机会创作一份收尾作品，为这段爱好的旅程做一次总结。\n\n<div class="q">这份属于你的收尾，你打算怎么做？</div>`,
     choices:[
@@ -559,19 +559,19 @@ const SCENES = [
     ],
   },
   {
-    id:'senior_solo', img:'images/senior_solo.jpg', year:'大四', title:'漫步校园',
+    id:'senior_solo', img:'images/senior_solo.png', year:'大四', title:'漫步校园',
     cond:s=>s.clubStatus===0 && !s.hasHobby,
     text:s=>`没有热闹的集体送别。你独自漫步校园，走过那些曾经去过的角落，安静地回望这四年一个人走过的路。`,
     choices:[{label:'静静回顾过往', fx:{hp:8, en:10, int:7}}],
   },
   {
-    id:'senior_parttime', img:'images/senior_parttime.jpg', year:'大四', title:'复盘打工',
+    id:'senior_parttime', img:'images/senior_parttime.png', year:'大四', title:'复盘打工',
     cond:s=>s.isParttime,
     text:s=>`大学期间，你把大量时间花在了兼职谋生上。站在毕业的节点回头看那些为生活费奔波的日子，心里五味杂陈。`,
     choices:[{label:'回想打工的得与失', fx:{mon:150, hp:-4, en:-8}}],
   },
   {
-    id:'finale', img:'images/finale.jpg', year:'大四', title:'终章',
+    id:'finale', img:'images/finale.png', year:'大四', title:'终章',
     text:s=>`四年大学生活到此全部结束。\n\n系统正在读取你所有的关键选择、数值与行为标记，解锁本局成就，然后——\n\n跳转至属于你的结局。`,
     choices:[{label:'查看我的结局', fx:{}}],
   },
@@ -606,25 +606,25 @@ function evaluateEnding(s){
 }
 
 const ENDINGS = {
-  E1:{ img:'images/end_e.jpg', grade:'退学结局组', title:'提早谋生',
+  E1:{ img:'images/end_e.png', grade:'退学结局组', title:'提早谋生',
     retro:`刚入学便离开校园，过早踏入社会谋生。前路没有标准答案，你选择了一条少有人走的道路。` },
-  E2:{ img:'images/end_e.jpg', grade:'退学结局组', title:'仓促离场',
+  E2:{ img:'images/end_e.png', grade:'退学结局组', title:'仓促离场',
     retro:`陌生环境和内心的不安压过了一切。大学还没来得及真正开始就已结束，你去往了属于自己的别处。` },
-  D:{ img:'images/end_d.jpg', grade:'透支迷失型', title:'疲惫退场',
+  D:{ img:'images/end_d.png', grade:'透支迷失型', title:'疲惫退场',
     retro:`这四年你十分忙碌，不停奔赴各类事务，长期透支身心，慢慢迷失了方向。喧嚣散去后，很难说清自己到底收获了什么。\n\n但成长也包含「及时止损」——一切仍可以重新开始。` },
-  A1:{ img:'images/end_a1.jpg', grade:'圆满成长型', title:'热忱同行',
+  A1:{ img:'images/end_a1.png', grade:'圆满成长型', title:'热忱同行',
     retro:`你深度投入了集体，锻炼了组织与沟通，收获了丰富的经历。${s=>!s.hasHobby?'（无爱好：少了独处沉淀的时光。）':''}\n\n学业尚可，集体带来的成长，在你身上落地生根。`, extra:s=>s.hasHobby?'' : '无爱好：少有独处沉淀的时光。' },
-  A2:{ img:'images/end_a2.jpg', grade:'圆满成长型', title:'热爱落地',
+  A2:{ img:'images/end_a2.png', grade:'圆满成长型', title:'热爱落地',
     retro:`你守住了一份热爱，从最初的好奇入坑，一路打磨出完整的作品，让爱好真正化成了你的能力。${s=>s.clubStatus===0?'（不在社团：很少参与热闹集体，更多自我沉淀。）':''}\n\n这份热爱，是大学送给你最重要的馈赠。`, extra:s=>s.clubStatus===0?'不在社团：很少参与热闹集体，更多自我沉淀。':'' },
-  C1:{ img:'images/end_c1.jpg', grade:'遗憾错过型', title:'热闹一场空',
+  C1:{ img:'images/end_c1.png', grade:'遗憾错过型', title:'热闹一场空',
     retro:`你沉浸在社团的热闹里，一时风光无限，却透支了自己、搁置了学业。毕业的喧嚣落幕之后，你发现找不到真正属于自己的方向。` },
-  C2:{ img:'images/end_c2.jpg', grade:'遗憾错过型', title:'未完成的热爱',
+  C2:{ img:'images/end_c2.png', grade:'遗憾错过型', title:'未完成的热爱',
     retro:`你曾经满怀热忱地投入那份爱好，却最终被现实的压力放下。不是所有坚持都有结果，这份「未完成」，成了你长久的遗憾。` },
-  C3:{ img:'images/end_c3.jpg', grade:'遗憾错过型', title:'擦肩而过',
+  C3:{ img:'images/end_c3.png', grade:'遗憾错过型', title:'擦肩而过',
     retro:`不少机遇曾摆在你的面前，却因为一次次犹豫与取舍而错过。回望时，只剩怅然。` },
-  B1:{ img:'images/end_b1.jpg', grade:'平凡自洽型', title:'自在如常',
+  B1:{ img:'images/end_b1.png', grade:'平凡自洽型', title:'自在如常',
     retro:`没有轰轰烈烈的高光，你守住了一个舒服的生活节奏。接纳普通，本身也是一种难得的成长。` },
-  B2:{ img:'images/end_b2.jpg', grade:'平凡自洽型', title:'慢慢赶路',
+  B2:{ img:'images/end_b2.png', grade:'平凡自洽型', title:'慢慢赶路',
     retro:`你经历过迷茫、放弃与摇摆，走过不少弯路，慢慢学会了照顾自己。不必追赶别人，你只需在自己的道路上，慢慢赶路。` },
 };
 
