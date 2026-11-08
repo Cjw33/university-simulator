@@ -129,6 +129,17 @@
     font-family:inherit; font-size:11px; cursor:pointer;
   }
   .hidden-quit:hover{ color:rgba(255,150,150,.5); }
+  #btnBack{
+    position:absolute; z-index:6; top:12px; left:12px;
+    background:var(--panel); color:var(--ink);
+    border:3px solid var(--panel-border);
+    box-shadow:inset 0 0 0 2px #241a10, 0 3px 0 rgba(0,0,0,.45);
+    font-family:inherit; font-size:14px; padding:5px 14px; cursor:pointer;
+    letter-spacing:1px;
+  }
+  #btnBack:hover{ background:#453722; }
+  .choice.reroll{ border-color:#8a5a3a; }
+  .choice.reroll:hover:not(:disabled){ background:#4a2f20; }
   /* 主菜单 */
   #menu{
     position:absolute; inset:0; z-index:20;
@@ -210,6 +221,7 @@
       <div id="choices"></div>
     </div>
   </div>
+  <button id="btnBack" style="display:none">← 后退</button>
   <button class="hidden-quit" id="hiddenQuit" style="display:none">〔申请退学〕</button>
   <div id="toast"></div>
 </div>
@@ -271,6 +283,7 @@ function freshState(){
 let S = freshState();
 let pos = -1;          // 当前场景下标
 let started = false;
+let history = [];      // 后退栈：{S, pos}，每次选择前压栈
 
 function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
 function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
@@ -284,6 +297,7 @@ const SCENES = [
     text:s=>`你的大学档案已生成——一切尚未开始，数值随机而定。\n\n这是属于你的「华南理工大学」四年：没有攻略，没有标准答案，你走的每一步，都会在毕业那天被回看。`,
     choices:[
       {label:'开启大学生活', fx:{}, next:true},
+      {label:'退学重来', reroll:true, desc:'重置随机开局数值'},
     ],
     extraChoices: true, // 显示隐藏退学按钮
   },
@@ -701,12 +715,15 @@ function showScene(i){
   const choices = typeof data.choices==='function' ? data.choices(S) : data.choices;
   // 隐藏退学按钮仅在大一开场
   $('hiddenQuit').style.display = sc.id==='opening' ? 'block' : 'none';
+  // 后退按钮：有历史可退时显示
+  $('btnBack').style.display = history.length>0 ? 'block' : 'none';
   choicesEl.innerHTML='';
   if(choices && choices.length){
     for(let c of choices){
       const dis = c.disabled ? c.disabled(S) : false;
       const btn=document.createElement('button');
       btn.className='choice';
+      if(c.reroll) btn.classList.add('reroll');
       btn.disabled=!!dis;
       btn.innerHTML = `<span>${c.label}</span>` + (c.desc?`<span class="fx">${c.desc}</span>`:'') + (c.fx?`<span class="fx">${fxText(c.fx)}</span>`:'');
       btn.onclick=()=>choose(sc, c, i);
@@ -721,6 +738,8 @@ function showScene(i){
 const panelEl=$('panel');
 
 function choose(sc, c, i){
+  if(c.reroll){ reroll(); return; }
+  history.push({ S:{...S}, pos:i });
   if(c.fx) applyFx(S, c.fx);
   if(c.set) Object.assign(S, c.set);
   if(c.count){ for(const k in c.count) S[k]=(S[k]||0)+c.count[k]; }
@@ -743,12 +762,27 @@ function nextScene(from){
   showEnding();
 }
 
+function goBack(){
+  if(!history.length) return;
+  const h = history.pop();
+  S = h.S;
+  renderHud();
+  showScene(h.pos);
+}
+
+function reroll(){
+  S = freshState();
+  renderHud();
+  showScene(0);
+}
+
 function showEnding(){
   const key=evaluateEnding(S);
   const e=ENDINGS[key];
   if(!e){ return; }
   panelWrap.style.display='none';
   $('hiddenQuit').style.display='none';
+  $('btnBack').style.display='none';
   yearEl.style.display='none';
   const extra = e.extra ? `<div class="extra">· ${e.extra(S)}</div>` : '';
   const achHtml = ACHIEVEMENTS.map(a=>{
@@ -813,6 +847,7 @@ $('hiddenQuit').onclick=()=>{
     showEnding();
   }
 };
+$('btnBack').onclick=()=>{ goBack(); };
 
 // 启动
 if(hasSave()){ $('btnContinue').style.display='inline-block'; }
